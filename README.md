@@ -32,6 +32,11 @@ Teachers enter in one of two ways:
 ## Key features
 - **Auto WebP compression** on upload (GD): a 458 KB JPEG became 49 KB in testing (~89% smaller). Graceful fallback if GD is missing.
 - **Homepage slider**: 3 slides managed from the Admin Dashboard, auto-rotate every 4.5s.
+- **CSE Activities**: create activities from Admin → Activities, add multiple photos, and show them in horizontal cards on the homepage and in the dedicated Activities page.
+- **Event registration**: teachers can create multiple Google Form-like student dropdown fields, each with its own title and options (for example, Select Sport, Select Team, and Participation Role). Teachers do not need to fill student-only fields.
+- **Participation arrangement**: teachers appear first in the public participation list; students are grouped by the first custom field, with other selected options shown as badges.
+- **Combined All Media**: the All Media page includes both Event media and Activity media, with All, Events, Activities, Photos, and Videos filters.
+- **Event lifecycle**: registration starts when an event is created, closes after the registration deadline, and the event moves from Upcoming to Event Albums on the event date.
 - **Media arrangement**: Set Cover button + move up/down arrows; public pages follow the order. The needed DB column is added by **auto-migration** — no manual SQL.
 - **Storage monitor** (admin only): total usage, photos vs videos, largest event, progress bar against quota. Cached 2 minutes.
 - **Performance**: lazy loading, pagination, videos never preload, prepared statements, output escaping, hashed passwords, session regeneration.
@@ -76,7 +81,8 @@ cse-gallery/
 ├── includes/         (config.php, functions.php)
 ├── assets/           (style.css, cse-logo.png, exim-logo.png)
 ├── uploads/
-│   ├── events/       (all photos/videos - REQUIRED, this is the gallery data)
+│   ├── events/       (all event photos/videos - REQUIRED, this is the gallery data)
+│   ├── activities/   (activity photos - REQUIRED for activity galleries)
 │   └── hero/         (slide_1..3 - the homepage slider)
 └── mysql_schema.sql  (only needed once, for phpMyAdmin import)
 ```
@@ -124,7 +130,8 @@ set covers, arrange order, change slider images, watch the storage monitor.
 4. In `includes/config.php`: comment the SQLite line, uncomment the MySQL block (user `root`, empty password).
 5. php.ini: enable `extension=gd`, and for multi-upload set
    `upload_max_filesize=25M`, `post_max_size=120M`, `max_file_uploads=40`.
-   Restart Apache after saving.
+   Restart Apache after saving. If using your current XAMPP installation, the
+   project folder is `D:\\Program Files\\XMDL\\htdocs\\cse-gallery`.
 6. Visit `http://localhost/cse-gallery`.
 
 ## Deployment path (tell your teacher this)

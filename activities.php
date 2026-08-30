@@ -17,7 +17,20 @@ foreach ($allActMedia as $row) {
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>CSE Activities — Department of CSE, EBAUB</title>
+<title>Activities &amp; Achievements — Department of CSE, EBAUB</title>
+<?php
+    $firstActImg = null;
+    foreach ($activities as $a) {
+        $imgs = $actMedia[$a['id']] ?? ($a['image'] ? [$a['image']] : []);
+        if ($imgs) { $firstActImg = $imgs[0]; break; }
+    }
+    seo_meta_tags(
+        'Activities & Achievements — Department of CSE, EBAUB',
+        'Projects, robotics, hardware labs, programming contests, and student initiatives in the Department of Computer Science & Engineering, EBAUB.',
+        'website',
+        $firstActImg
+    );
+?>
 <link rel="stylesheet" href="assets/style.css">
 <link rel="icon" type="image/png" href="assets/cse-logo.png">
 <style>
@@ -135,10 +148,10 @@ foreach ($allActMedia as $row) {
     </a>
     <nav class="nav">
       <a href="index.php">Home</a>
-      <a href="activities.php">Activities</a>
-      <a href="upcoming.php">Upcoming Events</a>
-      <a href="all-media.php">All Media</a>
-      <a href="https://ebaub.ac.bd/" target="_blank">Main Website</a>
+      <a href="activities.php" class="active">Activities</a>
+      <a href="upcoming.php">Events</a>
+      <a href="all-media.php">Media Gallery</a>
+      <a href="https://ebaub.ac.bd/" target="_blank" rel="noopener">Main Website</a>
     </nav>
   </div>
 </header>

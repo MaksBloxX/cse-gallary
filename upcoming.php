@@ -15,6 +15,20 @@ $events = $stmt->fetchAll();
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Upcoming Events — EBAUB CSE Gallery</title>
+<?php
+    $nextEventImg = null;
+    if (!empty($events)) {
+        $imgStmt = $pdo->prepare("SELECT file_path FROM media WHERE event_id=? AND file_type='image' ORDER BY COALESCE(sort_order,id), id LIMIT 1");
+        $imgStmt->execute([$events[0]['id']]);
+        $nextEventImg = $imgStmt->fetchColumn() ?: null;
+    }
+    seo_meta_tags(
+        'Upcoming Events — EBAUB CSE Gallery',
+        'See upcoming seminars, contests, workshops and study tours from the Department of Computer Science & Engineering, EBAUB, and register online.',
+        'website',
+        $nextEventImg
+    );
+?>
 <link rel="stylesheet" href="assets/style.css">
 <link rel="icon" type="image/png" href="assets/cse-logo.png">
 </head>
@@ -29,8 +43,8 @@ $events = $stmt->fetchAll();
     <nav class="nav">
       <a href="index.php">Home</a>
       <a href="activities.php">Activities</a>
-      <a href="upcoming.php">Upcoming Events</a>
-      <a href="all-media.php">All Media</a>
+      <a href="upcoming.php">Events</a>
+      <a href="all-media.php">Media Gallery</a>
       <a href="https://ebaub.ac.bd/" target="_blank">Main Website</a>
     </nav>
   </div>

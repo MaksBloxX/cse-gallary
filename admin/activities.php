@@ -38,6 +38,7 @@ function save_activity_images(PDO $pdo, int $aid, array &$msgs): void {
 
 /* CREATE (with optional multiple images) */
 if (isset($_POST['create'])) {
+    csrf_verify();
     $pdo->prepare("INSERT INTO activities (title, description, created_at) VALUES (?,?,?)")
         ->execute([trim($_POST['title']), trim($_POST['description']), date('Y-m-d H:i:s')]);
     $aid = (int)$pdo->lastInsertId();
@@ -48,6 +49,7 @@ if (isset($_POST['create'])) {
 
 /* UPDATE title/description */
 if (isset($_POST['update'])) {
+    csrf_verify();
     $pdo->prepare("UPDATE activities SET title=?, description=? WHERE id=?")
         ->execute([trim($_POST['title']), trim($_POST['description']), (int)$_POST['id']]);
     $msg = 'Activity updated!';
@@ -55,6 +57,7 @@ if (isset($_POST['update'])) {
 
 /* ADD MORE MEDIA to an existing activity */
 if (isset($_POST['add_media'])) {
+    csrf_verify();
     $aid = (int)$_POST['id'];
     $notes = [];
     save_activity_images($pdo, $aid, $notes);
@@ -63,6 +66,7 @@ if (isset($_POST['add_media'])) {
 
 /* DELETE one media item */
 if (isset($_POST['del_media'])) {
+    csrf_verify();
     $mid = (int)$_POST['media_id'];
     $c = $pdo->prepare("SELECT activity_id, file_path FROM activity_media WHERE id=?");
     $c->execute([$mid]);
@@ -77,6 +81,7 @@ if (isset($_POST['del_media'])) {
 
 /* DELETE whole activity (with all its media) */
 if (isset($_POST['delete'])) {
+    csrf_verify();
     $aid = (int)$_POST['id'];
     foreach ($pdo->query("SELECT file_path FROM activity_media WHERE activity_id=$aid") as $r) {
         $abs = __DIR__ . '/../' . $r['file_path'];
@@ -121,6 +126,7 @@ foreach ($pdo->query("SELECT * FROM activity_media ORDER BY id") as $m) $mediaBy
       <a href="activities.php">Activities</a>
       <a href="registrations.php">Registrations</a>
       <a href="../index.php" target="_blank">View Site</a>
+      <a href="change-password.php">Account</a>
       <a class="btn-login" href="logout.php">Logout</a>
     </nav>
   </div>
@@ -133,6 +139,7 @@ foreach ($pdo->query("SELECT * FROM activity_media ORDER BY id") as $m) $mediaBy
   <div class="panel">
     <h3><?= $editing ? 'Edit Activity (title & description)' : 'Add New Activity' ?></h3>
     <form method="post" enctype="multipart/form-data">
+      <?= csrf_field() ?>
       <?php if ($editing): ?><input type="hidden" name="id" value="<?= $editing['id'] ?>"><?php endif; ?>
       <div class="field">
         <label>Activity Title</label>
@@ -172,6 +179,7 @@ foreach ($pdo->query("SELECT * FROM activity_media ORDER BY id") as $m) $mediaBy
       <div>
         <a class="btn" style="padding:7px 13px;font-size:13px;background:#eef3f7" href="activities.php?edit=<?= $a['id'] ?>">Edit</a>
         <form method="post" style="display:inline" onsubmit="return confirm('Delete this activity AND all its photos?')">
+          <?= csrf_field() ?>
           <input type="hidden" name="id" value="<?= $a['id'] ?>">
           <button class="btn btn-danger" style="padding:7px 13px;font-size:13px" name="delete" value="1">Delete</button>
         </form>
@@ -187,6 +195,7 @@ foreach ($pdo->query("SELECT * FROM activity_media ORDER BY id") as $m) $mediaBy
           <span style="position:absolute;top:6px;left:6px;background:rgba(19,92,50,.92);color:#fff;font-size:10px;font-weight:700;padding:3px 8px;border-radius:999px">COVER</span>
         <?php endif; ?>
         <form method="post" onsubmit="return confirm('Remove this photo?')">
+          <?= csrf_field() ?>
           <input type="hidden" name="media_id" value="<?= $m['id'] ?>">
           <button class="del" name="del_media" value="1" title="Remove">✕</button>
         </form>
@@ -196,6 +205,7 @@ foreach ($pdo->query("SELECT * FROM activity_media ORDER BY id") as $m) $mediaBy
     <?php endif; ?>
 
     <form method="post" enctype="multipart/form-data" style="margin-top:12px;display:flex;gap:10px;align-items:center;flex-wrap:wrap">
+      <?= csrf_field() ?>
       <input type="hidden" name="id" value="<?= $a['id'] ?>">
       <input type="file" name="images[]" multiple accept=".jpg,.jpeg,.png,.webp" required style="font-size:13px">
       <button class="btn btn-primary" style="padding:7px 14px;font-size:13px" name="add_media" value="1">Add Photos</button>

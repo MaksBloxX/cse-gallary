@@ -5,6 +5,11 @@ require_admin();
 
 $msg = ''; $err = '';
 
+/* Nudge whoever is logged in to change the shipped demo password */
+$pwCheck = $pdo->prepare("SELECT password FROM admins WHERE id = ?");
+$pwCheck->execute([$_SESSION['admin_id']]);
+$usingDemoPassword = password_verify('ebaub123', (string)$pwCheck->fetchColumn());
+
 /* Helper to parse custom fields submitted from admin form */
 function parse_submitted_custom_fields(): ?string {
     $customFields = [];
@@ -26,6 +31,7 @@ function parse_submitted_custom_fields(): ?string {
 
 /* CREATE */
 if (isset($_POST['create'])) {
+    csrf_verify();
     $customRoles = parse_submitted_custom_fields();
     $stmt = $pdo->prepare("INSERT INTO events (title, category, event_date, reg_deadline, description, custom_roles, created_at) VALUES (?,?,?,?,?,?,?)");
     $stmt->execute([trim($_POST['title']), trim($_POST['category']), $_POST['event_date'], ($_POST['reg_deadline'] ?? '') ?: null, trim($_POST['description']), $customRoles, date('Y-m-d H:i:s')]);
@@ -34,6 +40,7 @@ if (isset($_POST['create'])) {
 
 /* UPDATE */
 if (isset($_POST['update'])) {
+    csrf_verify();
     $customRoles = parse_submitted_custom_fields();
     $stmt = $pdo->prepare("UPDATE events SET title=?, category=?, event_date=?, reg_deadline=?, description=?, custom_roles=? WHERE id=?");
     $stmt->execute([trim($_POST['title']), trim($_POST['category']), $_POST['event_date'], ($_POST['reg_deadline'] ?? '') ?: null, trim($_POST['description']), $customRoles, (int)$_POST['id']]);
@@ -42,6 +49,7 @@ if (isset($_POST['update'])) {
 
 /* DELETE (event + all its media files) */
 if (isset($_POST['delete'])) {
+    csrf_verify();
     $id = (int)$_POST['id'];
     $files = $pdo->prepare("SELECT file_path FROM media WHERE event_id=?");
     $files->execute([$id]);
@@ -56,6 +64,7 @@ if (isset($_POST['delete'])) {
 
 /* HERO SLIDE UPLOAD (homepage slider, 3 fixed slots) */
 if (isset($_POST['hero_upload']) && !empty($_FILES['hero_file']['name'])) {
+    csrf_verify();
     $r = process_hero_upload($_FILES['hero_file'], (int)($_POST['slot'] ?? 1));
     if ($r['ok']) $msg = 'Slider image updated!';
     else $err = $r['error'];
@@ -154,24 +163,33 @@ $usedPct = min(100, round($stats['total'] / $limitBytes * 100, 1));
       <a href="activities.php">Activities</a>
       <a href="registrations.php">Registrations</a>
       <a href="../index.php" target="_blank">View Site</a>
+      <a href="change-password.php">Account</a>
       <a class="btn-login" href="logout.php">Logout</a>
     </nav>
   </div>
 </header>
 
 <main class="container">
+  <?php if ($usingDemoPassword): ?>
+    <div class="alert alert-error">
+      ⚠️ You're logged in with the <b>default demo password</b> that ships with this project.
+      Anyone who reads the README knows it — please
+      <a href="change-password.php" style="color:inherit;text-decoration:underline;font-weight:700">change it now</a>
+      before putting the site online.
+    </div>
+  <?php endif; ?>
   <?php if ($msg): ?><div class="alert alert-ok"><?= e($msg) ?></div><?php endif; ?>
   <?php if ($err): ?><div class="alert alert-error"><?= e($err) ?></div><?php endif; ?>
 
   <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:16px;margin-bottom:26px">
     <div class="panel" style="margin-bottom:0">
-      <div style="font-size:12px;color:var(--muted);font-weight:700;letter-spacing:.5px">STORAGE USED</div>
-      <div style="font-size:24px;font-weight:800;color:var(--green-dark);margin:6px 0"><?= fmt_bytes($stats['total']) ?></div>
+      <div style="font-size:12px;color:var(--muted);font-weight:700;letter-spacing:.5px">Storage Used</div>
+      <div style="font-size:24px;font-weight:800;color:var(--green-dark);margin:6px 0"><?= fmt_bytes($stats['total']) ?> / <?= $storageLimitGB ?> GB</div>
       <div style="background:#e6ecef;border-radius:99px;height:10px;overflow:hidden">
         <div style="width:<?= $usedPct ?>%;background:linear-gradient(90deg,#1b7a43,#2f9c5c);height:100%"></div>
       </div>
-      <div style="font-size:12px;color:var(--muted);margin-top:6px"><?= $usedPct ?>% of <?= $storageLimitGB ?> GB limit · Server free: <?= fmt_bytes($stats['disk_free']) ?></div>
-      <div style="font-size:11.5px;color:var(--muted);margin-top:4px">Events <?= fmt_bytes($stats['f_events'] ?? 0) ?> · Slider <?= fmt_bytes($stats['f_hero'] ?? 0) ?> · Activities <?= fmt_bytes($stats['f_act'] ?? 0) ?></div>
+      <div style="font-size:12px;color:var(--muted);margin-top:6px"><?= $usedPct ?>% of <?= $storageLimitGB ?> GB used · Server free: <?= fmt_bytes($stats['disk_free']) ?></div>
+      <div style="font-size:11.5px;color:var(--muted);margin-top:4px"><b>Events:</b> <?= fmt_bytes($stats['f_events'] ?? 0) ?> · <b>Slider:</b> <?= fmt_bytes($stats['f_hero'] ?? 0) ?> · <b>Activities:</b> <?= fmt_bytes($stats['f_act'] ?? 0) ?></div>
     </div>
     <div class="panel" style="margin-bottom:0">
       <div style="font-size:12px;color:var(--muted);font-weight:700;letter-spacing:.5px">PHOTOS</div>
@@ -193,6 +211,7 @@ $usedPct = min(100, round($stats['total'] / $limitBytes * 100, 1));
   <div class="panel">
     <h3><?= $editing ? 'Edit Event' : 'Create New Event' ?></h3>
     <form method="post">
+      <?= csrf_field() ?>
       <?php if ($editing): ?><input type="hidden" name="id" value="<?= $editing['id'] ?>"><?php endif; ?>
       <div class="form-row">
         <div class="field">
@@ -212,7 +231,7 @@ $usedPct = min(100, round($stats['total'] / $limitBytes * 100, 1));
         <div class="field">
           <label>Event Date (program day)</label>
           <input type="date" name="event_date" required value="<?= e($editing['event_date'] ?? date('Y-m-d')) ?>">
-          <div style="font-size:12px;color:var(--muted);margin-top:5px">On this day the card moves from Upcoming to Event Albums</div>
+          <div style="font-size:12px;color:var(--muted);margin-top:5px">After the event date, it moves from Upcoming Events to Event Gallery.</div>
         </div>
         <div class="field">
           <label>Registration Deadline (optional)</label>
@@ -222,7 +241,7 @@ $usedPct = min(100, round($stats['total'] / $limitBytes * 100, 1));
       </div>
       <div style="background:#f8faf9;border:1.5px dashed #b9d7c4;border-radius:10px;padding:16px 18px;margin-bottom:18px">
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
-          <label style="font-weight:700;font-size:14px;color:var(--green-dark);margin:0">Custom Student Options / Roles (like Google Form)</label>
+          <label style="font-weight:700;font-size:14px;color:var(--green-dark);margin:0">Custom Registration Fields</label>
           <button type="button" class="btn" style="padding:5px 12px;font-size:12.5px;background:#eef6f1;color:var(--green-dark);border:1px solid var(--green)" onclick="addCustomField()">+ Add Field</button>
         </div>
         <div style="font-size:12.5px;color:var(--muted);margin-bottom:12px">
@@ -262,6 +281,7 @@ $usedPct = min(100, round($stats['total'] / $limitBytes * 100, 1));
           <?php endif; ?>
         </div>
         <form method="post" enctype="multipart/form-data">
+          <?= csrf_field() ?>
           <input type="hidden" name="slot" value="<?= $n ?>">
           <input type="file" name="hero_file" accept=".jpg,.jpeg,.png,.webp" required style="font-size:13px;margin-bottom:8px;max-width:100%">
           <button class="btn btn-primary" style="padding:7px 13px;font-size:13px" name="hero_upload" value="1">Set Slide <?= $n ?></button>
@@ -308,6 +328,7 @@ $usedPct = min(100, round($stats['total'] / $limitBytes * 100, 1));
         <a class="btn btn-primary" style="padding:7px 13px;font-size:13px" href="media.php?event=<?= $ev['id'] ?>">Manage Media</a>
         <a class="btn" style="padding:7px 13px;font-size:13px;background:#eef3f7" href="dashboard.php?edit=<?= $ev['id'] ?>">Edit</a>
         <form method="post" style="display:inline" onsubmit="return confirm('Delete this event AND all its photos/videos?')">
+          <?= csrf_field() ?>
           <input type="hidden" name="id" value="<?= $ev['id'] ?>">
           <button class="btn btn-danger" style="padding:7px 13px;font-size:13px" name="delete" value="1">Delete</button>
         </form>

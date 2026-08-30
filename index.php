@@ -30,9 +30,9 @@ $stmt = $pdo->prepare("
 $stmt->execute($params);
 $events = $stmt->fetchAll();
 
-$cats = $pdo->query("SELECT DISTINCT category FROM events ORDER BY category")->fetchAll(PDO::FETCH_COLUMN);
+$cats = ['Contest', 'Seminar', 'Workshop', 'Study Tour', 'Other'];
 
-/* CSE Activities showcase */
+/* Activities &amp; Achievements showcase */
 $activities = $pdo->query("SELECT * FROM activities ORDER BY COALESCE(sort_order,id), id")->fetchAll();
 $actMedia = [];
 try {
@@ -71,6 +71,12 @@ if (!$heroImgs) $heroImgs = ['uploads/events/demo_seminar.jpg'];
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>EBAUB CSE Department — Media Gallery</title>
+<?php seo_meta_tags(
+    'EBAUB CSE Department — Media Gallery',
+    'Official media gallery of the Department of Computer Science & Engineering, Exim Bank Agricultural University Bangladesh (EBAUB). Browse seminars, contests, workshops, study tours, and department activities.',
+    'website',
+    $heroImgs[0] ?? null
+); ?>
 <link rel="stylesheet" href="assets/style.css">
 <link rel="icon" type="image/png" href="assets/cse-logo.png">
 <style>
@@ -96,8 +102,8 @@ if (!$heroImgs) $heroImgs = ['uploads/events/demo_seminar.jpg'];
     <nav class="nav">
       <a href="index.php">Home</a>
       <a href="activities.php">Activities</a>
-      <a href="upcoming.php">Upcoming Events</a>
-      <a href="all-media.php">All Media</a>
+      <a href="upcoming.php">Events</a>
+      <a href="all-media.php">Media Gallery</a>
       <a href="https://ebaub.ac.bd/" target="_blank">Main Website</a>
     </nav>
   </div>
@@ -111,7 +117,7 @@ if (!$heroImgs) $heroImgs = ['uploads/events/demo_seminar.jpg'];
     <h1 style="animation:heroZoomBlur 1.4s ease-out both">Glimpses of the CSE Department</h1>
     <!-- invisible full text reserves the exact space -> no layout jump while typing -->
     <p id="heroSub" style="position:relative;margin:0">
-      <span style="visibility:hidden">Discover our achievements, events &amp; memories — seminars, contests, workshops and study tours, all in one place.</span>
+      <span style="visibility:hidden">Explore our achievements, activities and events — from seminars and contests to workshops and study tours, all in one place.</span>
       <span id="heroSubTyped" style="position:absolute;top:0;left:0;right:0"></span>
     </p>
   </div>
@@ -126,7 +132,7 @@ if (!$heroImgs) $heroImgs = ['uploads/events/demo_seminar.jpg'];
 
 <form class="filter-bar" method="get" action="index.php">
   <div class="search-box">
-    <input type="text" name="q" value="<?= e($q) ?>" placeholder="Search events (e.g. 2024, Programming Contest)">
+    <input type="text" name="q" value="<?= e($q) ?>" placeholder="Search events, activities or keywords...">
   </div>
   <div class="chips">
     <a class="chip <?= $cat === '' ? 'active' : '' ?>" href="index.php<?= $q ? '?q=' . urlencode($q) : '' ?>">All</a>
@@ -139,7 +145,7 @@ if (!$heroImgs) $heroImgs = ['uploads/events/demo_seminar.jpg'];
 
 <main class="container">
   <?php if ($upcomingEvents): ?>
-  <h2 class="section-title">Upcoming Events</h2>
+  <h2 class="section-title">Events</h2>
   <div class="grid" style="margin-bottom:38px">
     <?php foreach ($upcomingEvents as $ue): ?>
     <a class="event-card" href="event.php?id=<?= $ue['id'] ?>">
@@ -163,7 +169,7 @@ if (!$heroImgs) $heroImgs = ['uploads/events/demo_seminar.jpg'];
 
   <?php if ($activities): ?>
   <div class="activities-header">
-    <h2 class="section-title" id="activities" style="margin:0">CSE Activities</h2>
+    <h2 class="section-title" id="activities" style="margin:0">Activities &amp; Achievements</h2>
     <a class="btn-see-more" href="activities.php">See more &rarr;</a>
   </div>
   <div class="activities-scroll">
@@ -188,7 +194,7 @@ if (!$heroImgs) $heroImgs = ['uploads/events/demo_seminar.jpg'];
   </div>
   <?php endif; ?>
 
-  <h2 class="section-title">Event Albums <small style="color:var(--muted);font-size:14px;font-weight:400">(<?= $totalEvents ?> found)</small></h2>
+  <h2 class="section-title">Event Gallery <small style="color:var(--muted);font-size:14px;font-weight:400">· <?= $totalEvents ?> events</small></h2>
 
   <?php if (!$events): ?>
     <div class="empty">No events found. Try a different search.</div>
@@ -272,7 +278,7 @@ if (!$heroImgs) $heroImgs = ['uploads/events/demo_seminar.jpg'];
 (function () {
   const sub = document.getElementById('heroSubTyped');
   if (!sub) return;
-  const text = 'Discover our achievements, events & memories \u2014 seminars, contests, workshops and study tours, all in one place.';
+  const text = 'Explore our achievements, activities and events \u2014 from seminars and contests to workshops and study tours, all in one place.';
   let i = 0;
   setTimeout(function type() {
     if (i <= text.length) {

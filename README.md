@@ -1,6 +1,6 @@
-# EBAUB CSE Department — Dynamic Media Gallery
+# EBAUB CSE Department — Event & Media Management System
 
-A complete, working PHP media gallery for the Department of CSE, Exim Bank
+A complete, working PHP event and media management system for the Department of CSE, Exim Bank
 Agricultural University Bangladesh. Public gallery + secure admin panel with
 automatic WebP image compression.
 
@@ -19,15 +19,16 @@ Teachers enter in one of two ways:
 | # | Page | File | Who |
 |---|------|------|-----|
 | 1 | Home / Albums (hero slider, search, filter, activities scroller, pagination) | `index.php` | Public |
-| 2 | CSE Activities (dedicated showcases, full writeups, multi-photo galleries) | `activities.php` | Public |
+| 2 | Activities & Achievements (dedicated showcases, full writeups, multi-photo galleries) | `activities.php` | Public |
 | 3 | Single Album + Lightbox + Registration + Role Participation List | `event.php` | Public |
 | 4 | Upcoming Events (registration open/deadline indicator) | `upcoming.php` | Public |
 | 5 | All Media (every photo/video, filter, pagination) | `all-media.php` | Public |
 | 6 | Admin Login (hashed passwords, sessions) | `admin/login.php` | Teachers |
-| 7 | Dashboard — Event CRUD + Homepage Slider + Storage Monitor | `admin/dashboard.php` | Teachers |
+| 7 | Dashboard — Event & Media Management + Homepage Slider + Storage Monitor | `admin/dashboard.php` | Teachers |
 | 8 | Media Upload & Management (multi-upload, Set Cover, reorder) | `admin/media.php` | Teachers |
 | 9 | Activity Manager (create activities, upload multiple photos, delete) | `admin/activities.php` | Teachers |
-| 10 | Event Registrations & Attendance CSV Export | `admin/registrations.php` | Teachers |
+| 10 | Event Registrations, Admin Edit & Attendance CSV Export | `admin/registrations.php`, `admin/edit-registration.php` | Teachers |
+| 11 | Change Password / Account Security | `admin/change-password.php` | Teachers |
 
 ## Key features
 - **Auto WebP compression** on upload (GD): a 458 KB JPEG became 49 KB in testing (~89% smaller). Graceful fallback if GD is missing.
@@ -36,9 +37,13 @@ Teachers enter in one of two ways:
 - **Event registration**: teachers can create multiple Google Form-like student dropdown fields, each with its own title and options (for example, Select Sport, Select Team, and Participation Role). Teachers do not need to fill student-only fields.
 - **Participation arrangement**: teachers appear first in the public participation list; students are grouped by the first custom field, with other selected options shown as badges.
 - **Combined All Media**: the All Media page includes both Event media and Activity media, with All, Events, Activities, Photos, and Videos filters.
-- **Event lifecycle**: registration starts when an event is created, closes after the registration deadline, and the event moves from Upcoming to Event Albums on the event date.
+- **Event lifecycle**: registration starts when an event is created, closes after the registration deadline, and the event moves from Upcoming Events to Event Gallery after the event date.
+- **Registration correction**: students can use a one-time edit link before the deadline; teachers/admins can edit registrations from the admin panel when further correction is needed.
 - **Media arrangement**: Set Cover button + move up/down arrows; public pages follow the order. The needed DB column is added by **auto-migration** — no manual SQL.
 - **Storage monitor** (admin only): total usage, photos vs videos, largest event, progress bar against quota. Cached 2 minutes.
+- **Admin security**: CSRF protection on forms, hardened session cookies, security headers, hidden database errors in production, login slow-down, and a registration honeypot against basic spam bots.
+- **Account security**: admins can change their password from the Account / Change Password page; the default password warning disappears after changing it.
+- **SEO and sharing**: public pages include page-specific descriptions, canonical URLs, Open Graph tags, and Twitter Card tags for better search and social previews.
 - **Performance**: lazy loading, pagination, videos never preload, prepared statements, output escaping, hashed passwords, session regeneration.
 - **Fully responsive**: phone / tablet / desktop breakpoints in `assets/style.css`.
 
@@ -77,14 +82,13 @@ Upload the **entire `cse-gallery` folder** — every file and subfolder:
 ```
 cse-gallery/
 ├── index.php, event.php, all-media.php, setup.php (setup.php optional)
-├── admin/            (all 4 files)
+├── admin/            (login, dashboard, activities, media, registrations, account files)
 ├── includes/         (config.php, functions.php)
-├── assets/           (style.css, cse-logo.png, exim-logo.png)
-├── uploads/
-│   ├── events/       (all event photos/videos - REQUIRED, this is the gallery data)
-│   ├── activities/   (activity photos - REQUIRED for activity galleries)
-│   └── hero/         (slide_1..3 - the homepage slider)
-└── mysql_schema.sql  (only needed once, for phpMyAdmin import)
+├── assets/            (style.css, cse-logo.png, exim-logo.png)
+├── .htaccess          (root security rules)
+├── includes/          (config.php, functions.php, .htaccess)
+├── uploads/           (events, activities, hero media, .htaccess)
+└── mysql_schema.sql   (only needed once, for phpMyAdmin import)
 ```
 
 Do NOT upload: `gallery.db` (that is only the local SQLite demo).

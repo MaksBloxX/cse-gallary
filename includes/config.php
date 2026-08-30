@@ -8,7 +8,39 @@
  *              in phpMyAdmin first)
  */
 
+/**
+ * PRODUCTION MODE: set this to false once the site is live on the
+ * university server. While true, PHP errors are shown on screen which is
+ * useful for development but leaks file paths/queries to visitors.
+ */
+define('APP_DEBUG', false);
+
+if (APP_DEBUG) {
+    ini_set('display_errors', '1');
+    error_reporting(E_ALL);
+} else {
+    ini_set('display_errors', '0');
+    error_reporting(E_ALL);
+    ini_set('log_errors', '1');
+    ini_set('error_log', __DIR__ . '/../php-error.log');
+}
+
+/* ---------- Session hardening ---------- */
+ini_set('session.use_strict_mode', '1');
+$sessionSecure = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off');
+session_set_cookie_params([
+    'lifetime' => 0,
+    'path'     => '/',
+    'secure'   => $sessionSecure,   // only over HTTPS once the site has a certificate
+    'httponly' => true,             // JS can't read the session cookie
+    'samesite' => 'Lax',
+]);
 session_start();
+
+/* ---------- Basic security headers ---------- */
+header('X-Content-Type-Options: nosniff');
+header('X-Frame-Options: SAMEORIGIN');
+header('Referrer-Policy: strict-origin-when-cross-origin');
 
 define('UPLOAD_DIR', __DIR__ . '/../uploads/events/');
 define('UPLOAD_URL', 'uploads/events/');
@@ -30,7 +62,8 @@ try {
     $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
     $pdo->setAttribute(PDO::ATTR_DEFAULT_FETCH_MODE, PDO::FETCH_ASSOC);
 } catch (PDOException $e) {
-    die('Database connection failed: ' . htmlspecialchars($e->getMessage()));
+    error_log('DB connection failed: ' . $e->getMessage());
+    die('Sorry, the site is temporarily unavailable. Please try again shortly.');
 }
 
 /* Auto-migration: adds media.sort_order for photo arrangement.
@@ -127,7 +160,8 @@ try {
                 designation VARCHAR(100) NULL,
                 mobile VARCHAR(30) NOT NULL,
                 reference VARCHAR(150) NULL,
-                event_role VARCHAR(100) NULL,
+                event_role TEXT NULL,
+                edit_used INTEGER NOT NULL DEFAULT 0,
                 registered_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
         } else {
@@ -156,6 +190,8 @@ try {
 
 /* Auto-migration 5: event role column on registrations */
 try {
+    try { $pdo->query("SELECT edit_used FROM registrations LIMIT 1"); } catch (Throwable $e) { try { $pdo->exec("ALTER TABLE registrations ADD COLUMN edit_used INTEGER NOT NULL DEFAULT 0"); } catch (Throwable $ignore) {} }
+
     $pdo->query("SELECT event_role FROM registrations LIMIT 1");
 } catch (Throwable $e) {
     try {

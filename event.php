@@ -20,8 +20,17 @@ $deadline     = $event['reg_deadline'] ?? null;
 $regOpen      = $isUpcoming && (empty($deadline) || $today <= $deadline);
 $customFields = get_event_custom_fields($event);
 
-$regMsg = ''; $regErr = '';
+$regMsg = ''; $regErr = ''; $newRegId = 0;
+$editReg = null;
+if (isset($_GET['edit'], $_GET['mobile'])) {
+    $est = $pdo->prepare("SELECT * FROM registrations WHERE id = ? AND event_id = ? AND mobile = ? AND role = 'student'");
+    $est->execute([(int)$_GET['edit'], $id, trim($_GET['mobile'])]);
+    $editReg = $est->fetch() ?: null;
+    if ($editReg && !empty($editReg['edit_used'])) $editReg = null;
+}
 if ($regOpen && isset($_POST['register'])) {
+    csrf_verify();
+
     $role      = ($_POST['role'] ?? '') === 'teacher' ? 'teacher' : 'student';
     $name      = trim($_POST['name'] ?? '');
     $mobile    = trim($_POST['mobile'] ?? '');
@@ -44,10 +53,15 @@ if ($regOpen && isset($_POST['register'])) {
         }
     }
 
-    if ($regErr !== '') {
+    if (honeypot_tripped()) {
+        /* Hidden field only a bot would fill in: silently pretend success. */
+        $regMsg = 'Registration successful! See you at the event.';
+    } elseif ($regErr !== '') {
         /* validation error already set */
     } elseif ($name === '' || $mobile === '') {
         $regErr = 'Name and mobile number are required.';
+    } elseif (!is_valid_mobile($mobile)) {
+        $regErr = 'Please enter a valid 11-digit mobile number (e.g. 01710000000).';
     } elseif ($role === 'student' && ($semester === '' || $batch === '' || $regNo === '')) {
         $regErr = 'Semester, batch and registration no. are required for students.';
     } elseif ($role === 'teacher' && $desig === '') {
@@ -55,19 +69,28 @@ if ($regOpen && isset($_POST['register'])) {
     } else {
         $chk = $pdo->prepare("SELECT COUNT(*) FROM registrations WHERE event_id = ? AND mobile = ?");
         $chk->execute([$id, $mobile]);
-        if ($chk->fetchColumn() > 0) {
+        if (!$editReg && $chk->fetchColumn() > 0) {
             $regErr = 'This mobile number is already registered for this event.';
         } else {
+            if ($editReg) {
+                $savedEventRole = !empty($studentAnswers) ? json_encode($studentAnswers, JSON_UNESCAPED_UNICODE) : null;
+                $pdo->prepare('UPDATE registrations SET name=?, semester=?, batch=?, reg_no=?, mobile=?, event_role=?, edit_used=1 WHERE id=? AND edit_used=0')
+                    ->execute([$name, $semester ?: null, $batch ?: null, $regNo ?: null, $mobile, $savedEventRole, $editReg['id']]);
+                $regMsg = 'Your registration has been updated. This was your one-time edit opportunity.';
+                $editReg = null;
+            } else {
             $savedEventRole = ($role === 'student' && !empty($studentAnswers))
                 ? json_encode($studentAnswers, JSON_UNESCAPED_UNICODE)
                 : null;
 
-            $pdo->prepare("INSERT INTO registrations
+            $ins = $pdo->prepare("INSERT INTO registrations
                 (event_id, role, name, semester, batch, reg_no, designation, mobile, reference, event_role, registered_at)
-                VALUES (?,?,?,?,?,?,?,?,?,?,?)")
-                ->execute([$id, $role, $name, $semester ?: null, $batch ?: null, $regNo ?: null,
+                VALUES (?,?,?,?,?,?,?,?,?,?,?)");
+            $ins->execute([$id, $role, $name, $semester ?: null, $batch ?: null, $regNo ?: null,
                            $desig ?: null, $mobile, $ref ?: null, $savedEventRole, date('Y-m-d H:i:s')]);
+            $newRegId = (int)$pdo->lastInsertId();
             $regMsg = 'Registration successful! See you at the event.';
+            }
         }
     }
 }
@@ -85,6 +108,16 @@ $pStudents = array_values(array_filter($participants, fn($p) => $p['role'] === '
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title><?= e($event['title']) ?> — EBAUB CSE Gallery</title>
+<?php
+    $eventCoverImg = null;
+    foreach ($media as $mm) { if ($mm['file_type'] === 'image') { $eventCoverImg = $mm['file_path']; break; } }
+    seo_meta_tags(
+        $event['title'] . ' — EBAUB CSE Gallery',
+        $event['description'] ?: ('Photos and details for ' . $event['title'] . ', Department of CSE, EBAUB.'),
+        'article',
+        $eventCoverImg
+    );
+?>
 <link rel="stylesheet" href="assets/style.css">
 <link rel="icon" type="image/png" href="assets/cse-logo.png">
 </head>
@@ -97,10 +130,10 @@ $pStudents = array_values(array_filter($participants, fn($p) => $p['role'] === '
       <div class="brand-text"><b>Department of CSE</b><span>Media Gallery</span></div>
     </a>
     <nav class="nav">
-      <a href="index.php">← Back to Albums</a>
+      <a href="index.php">Home</a>
       <a href="activities.php">Activities</a>
-      <a href="upcoming.php">Upcoming Events</a>
-      <a href="all-media.php">All Media</a>
+      <a href="upcoming.php">Events</a>
+      <a href="all-media.php">Media Gallery</a>
     </nav>
   </div>
 </header>
@@ -113,12 +146,20 @@ $pStudents = array_values(array_filter($participants, fn($p) => $p['role'] === '
   <?php elseif ($isUpcoming): ?>
     <span style="display:inline-block;background:#fdecec;color:#c0392b;font-size:12px;font-weight:800;letter-spacing:.5px;padding:6px 14px;border-radius:999px;margin-bottom:12px">UPCOMING EVENT — REGISTRATION CLOSED</span>
   <?php endif; ?>
-  <p style="max-width:820px;color:#3a4553;line-height:1.6;margin-bottom:26px"><?= e($event['description']) ?></p>
+  <div style="max-width:820px;margin-bottom:26px">
+    <?php if (mb_strlen($event['description']) > 280): ?>
+      <p id="eventShortDescription" style="color:#3a4553;line-height:1.6;margin:0"><?= e(mb_strimwidth($event['description'], 0, 280, '…')) ?></p>
+      <p id="eventFullDescription" style="display:none;color:#3a4553;line-height:1.6;margin:0"><?= nl2br(e($event['description'])) ?></p>
+      <button type="button" id="descriptionToggle" onclick="toggleEventDescription()" style="border:0;background:none;padding:6px 0;color:var(--green-dark);font-weight:700;font-size:14.5px;cursor:pointer">See more</button>
+    <?php else: ?>
+      <p style="color:#3a4553;line-height:1.6;margin:0"><?= nl2br(e($event['description'])) ?></p>
+    <?php endif; ?>
+  </div>
 
   <?php if ($regOpen): ?>
   <div class="panel" style="max-width:640px" id="registerBox">
-    <h3>Register for this Event<?= $deadline ? ' <small style="font-weight:400;font-size:13px;color:var(--muted)">(deadline: ' . date('d M Y', strtotime($deadline)) . ')</small>' : '' ?></h3>
-    <?php if ($regMsg): ?><div class="alert alert-ok"><?= e($regMsg) ?></div><?php endif; ?>
+    <h3><?= $editReg ? 'Edit Your Registration (one time)' : 'Register for this Event' ?><?= $deadline ? ' <small style="font-weight:400;font-size:13px;color:var(--muted)">(deadline: ' . date('d M Y', strtotime($deadline)) . ')</small>' : '' ?></h3>
+    <?php if ($regMsg): ?><div class="alert alert-ok"><?= e($regMsg) ?><?php if ($newRegId): ?><br><small>Need to correct something? Save this one-time edit link: <a href="event.php?id=<?= $id ?>&edit=<?= $newRegId ?>&mobile=<?= urlencode($mobile) ?>">Edit registration</a></small><?php endif; ?></div><?php endif; ?>
     <?php if ($regErr): ?><div class="alert alert-error"><?= e($regErr) ?></div><?php endif; ?>
 
     <div style="display:flex;gap:8px;margin-bottom:16px">
@@ -126,12 +167,14 @@ $pStudents = array_values(array_filter($participants, fn($p) => $p['role'] === '
       <button type="button" class="chip" id="tabTeacher" onclick="setRole('teacher')">Teacher</button>
     </div>
 
-    <form method="post" action="event.php?id=<?= $event['id'] ?>">
+    <form method="post" action="event.php?id=<?= $event['id'] ?><?= $editReg ? '&edit=' . $editReg['id'] . '&mobile=' . urlencode($editReg['mobile']) : '' ?>">
+      <?= csrf_field() ?>
+      <input type="text" name="website" value="" autocomplete="off" tabindex="-1" style="position:absolute;left:-9999px;width:1px;height:1px;opacity:0" aria-hidden="true">
       <input type="hidden" name="role" id="roleInput" value="student">
 
       <div class="field">
         <label>Full Name *</label>
-        <input type="text" name="name" required placeholder="e.g. Rahim Uddin">
+        <input type="text" name="name" required value="<?= e($editReg['name'] ?? '') ?>" placeholder="e.g. Rahim Uddin">
       </div>
 
       <div id="studentFields">
@@ -150,17 +193,17 @@ $pStudents = array_values(array_filter($participants, fn($p) => $p['role'] === '
         <?php endif; ?>
 
         <div class="form-row">
-          <div class="field"><label>Semester *</label><input type="text" name="semester" placeholder="e.g. 6th"></div>
-          <div class="field"><label>Batch *</label><input type="text" name="batch" placeholder="e.g. CSE-27"></div>
+          <div class="field"><label>Semester *</label><input type="text" name="semester" value="<?= e($editReg['semester'] ?? '') ?>" placeholder="e.g. 6th"></div>
+          <div class="field"><label>Batch *</label><input type="text" name="batch" value="<?= e($editReg['batch'] ?? '') ?>" placeholder="e.g. CSE-27"></div>
         </div>
-        <div class="field"><label>Registration No. *</label><input type="text" name="reg_no" placeholder="e.g. 210105027"></div>
+        <div class="field"><label>Registration No. *</label><input type="text" name="reg_no" value="<?= e($editReg['reg_no'] ?? '') ?>" placeholder="e.g. 210105027"></div>
       </div>
 
       <div id="teacherFields" style="display:none">
         <div class="field"><label>Designation *</label><input type="text" name="designation" placeholder="e.g. Lecturer, Dept. of CSE"></div>
       </div>
       <div class="form-row">
-        <div class="field"><label>Mobile *</label><input type="text" name="mobile" required placeholder="e.g. 01710000000"></div>
+        <div class="field"><label>Mobile *</label><input type="tel" name="mobile" required pattern="01[0-9]{9}" maxlength="11" title="11-digit number starting with 01, e.g. 01710000000" value="<?= e($editReg['mobile'] ?? '') ?>" placeholder="e.g. 01710000000"></div>
         <div class="field"><label>Reference (optional)</label><input type="text" name="reference" placeholder="e.g. friend / notice board"></div>
       </div>
       <button class="btn btn-primary" name="register" value="1">Submit Registration</button>
@@ -186,9 +229,10 @@ $pStudents = array_values(array_filter($participants, fn($p) => $p['role'] === '
       <p style="margin:14px 0 6px;font-weight:700;font-size:13px;color:var(--muted);letter-spacing:.5px">TEACHERS (<?= count($pTeachers) ?>)</p>
       <?php foreach ($pTeachers as $i => $p): ?>
         <div style="padding:8px 4px;border-top:1px solid #eef2f4;font-size:14.5px">
+          <?php $tSummary = get_registration_summary($p['event_role'] ?? ''); ?>
           <?= $i + 1 ?>. <b><?= e($p['name']) ?></b> <span style="color:var(--muted)">— <?= e($p['designation']) ?></span>
-          <?php if (!empty($p['event_role'])): ?>
-            <span style="display:inline-block;margin-left:6px;background:var(--green-light);color:var(--green-dark);font-size:11.5px;font-weight:700;padding:2px 8px;border-radius:6px"><?= e($p['event_role']) ?></span>
+          <?php if ($tSummary): ?>
+            <span style="display:inline-block;margin-left:6px;background:var(--green-light);color:var(--green-dark);font-size:11.5px;font-weight:700;padding:2px 8px;border-radius:6px"><?= e($tSummary) ?></span>
           <?php endif; ?>
         </div>
       <?php endforeach; ?>
@@ -363,6 +407,16 @@ document.addEventListener('keydown', e => {
   if (e.key === 'ArrowLeft') navLb(-1);
   if (e.key === 'ArrowRight') navLb(1);
 });
+
+function toggleEventDescription() {
+  const shortText = document.getElementById('eventShortDescription');
+  const fullText = document.getElementById('eventFullDescription');
+  const toggle = document.getElementById('descriptionToggle');
+  const expanded = fullText.style.display === 'none';
+  shortText.style.display = expanded ? 'none' : '';
+  fullText.style.display = expanded ? '' : 'none';
+  toggle.textContent = expanded ? 'See less' : 'See more';
+}
 
 /* Registration: student / teacher tab switch */
 function setRole(r) {

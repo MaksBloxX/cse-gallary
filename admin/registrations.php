@@ -8,6 +8,7 @@ $msg = '';
 
 /* Delete a registration */
 if (isset($_POST['del_reg'])) {
+    csrf_verify();
     $pdo->prepare("DELETE FROM registrations WHERE id = ?")->execute([(int)$_POST['reg_id']]);
     $msg = 'Registration deleted.';
 }
@@ -102,6 +103,7 @@ if ($eid && isset($_GET['export']) && $_GET['export'] === 'csv') {
       <a href="activities.php">Activities</a>
       <a href="registrations.php">Registrations</a>
       <a href="../index.php" target="_blank">View Site</a>
+      <a href="change-password.php">Account</a>
       <a class="btn-login" href="logout.php">Logout</a>
     </nav>
   </div>
@@ -170,7 +172,9 @@ if ($eid && isset($_GET['export']) && $_GET['export'] === 'csv') {
       <?php if (!$eid): ?><td style="font-size:13px"><?= e($r['event_title']) ?></td><?php endif; ?>
       <td style="font-size:12.5px;color:var(--muted)"><?= e($r['registered_at']) ?></td>
       <td>
+        <a class="btn" style="padding:6px 11px;font-size:12px;background:#eef3f7" href="edit-registration.php?id=<?= $r['id'] ?>">Edit</a>
         <form method="post" onsubmit="return confirm('Delete this registration?')" style="display:inline">
+          <?= csrf_field() ?>
           <input type="hidden" name="reg_id" value="<?= $r['id'] ?>">
           <button class="btn btn-danger" style="padding:6px 11px;font-size:12px" name="del_reg" value="1">Delete</button>
         </form>

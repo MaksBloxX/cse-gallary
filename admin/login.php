@@ -6,6 +6,15 @@ if (!empty($_SESSION['admin_id'])) { header('Location: dashboard.php'); exit; }
 
 $error = '';
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    csrf_verify();
+
+    /* Very simple brute-force slow-down: after repeated failures from this
+       session, force a short delay before checking the password again. */
+    $_SESSION['login_attempts'] = ($_SESSION['login_attempts'] ?? 0) + 1;
+    if ($_SESSION['login_attempts'] > 5) {
+        sleep(2);
+    }
+
     $username = trim($_POST['username'] ?? '');
     $password = $_POST['password'] ?? '';
 
@@ -17,6 +26,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         session_regenerate_id(true);           // prevent session fixation
         $_SESSION['admin_id'] = $admin['id'];
         $_SESSION['admin_name'] = $admin['username'];
+        unset($_SESSION['login_attempts']);
         header('Location: dashboard.php');
         exit;
     }
@@ -35,6 +45,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 <body>
 <div class="auth-wrap">
   <form class="auth-card" method="post">
+    <?= csrf_field() ?>
     <div style="text-align:center;margin-bottom:14px">
       <img src="../assets/cse-logo.png" alt="EBAUB CSE Logo" width="84" height="84" style="width:84px;height:84px;margin:auto;display:block">
     </div>

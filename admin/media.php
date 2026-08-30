@@ -13,6 +13,7 @@ $msgs = [];
 
 /* UPLOAD (multiple files) */
 if (!empty($_FILES['files'])) {
+    csrf_verify();
     $count = count($_FILES['files']['name']);
     for ($i = 0; $i < $count; $i++) {
         if ($_FILES['files']['error'][$i] === UPLOAD_ERR_NO_FILE) continue;
@@ -35,6 +36,7 @@ if (!empty($_FILES['files'])) {
 
 /* DELETE single media */
 if (isset($_POST['delete_media'])) {
+    csrf_verify();
     $mid = (int)$_POST['media_id'];
     $s = $pdo->prepare("SELECT file_path FROM media WHERE id=? AND event_id=?");
     $s->execute([$mid, $eventId]);
@@ -48,6 +50,7 @@ if (isset($_POST['delete_media'])) {
 
 /* ARRANGE: set as cover / move up / move down */
 if (isset($_POST['set_cover']) || isset($_POST['move_up']) || isset($_POST['move_dn'])) {
+    csrf_verify();
     $mid = (int)($_POST['media_id'] ?? 0);
     $rows = $pdo->prepare("SELECT id FROM media WHERE event_id=? ORDER BY COALESCE(sort_order,id), id");
     $rows->execute([$eventId]);
@@ -93,6 +96,7 @@ $media = $media->fetchAll();
     </a>
     <nav class="nav">
       <a href="dashboard.php">← Dashboard</a>
+      <a href="change-password.php">Account</a>
       <a class="btn-login" href="logout.php">Logout</a>
     </nav>
   </div>
@@ -110,6 +114,7 @@ $media = $media->fetchAll();
       Videos (MP4, max <?= MAX_VIDEO_MB ?>MB).
     </p>
     <form method="post" enctype="multipart/form-data" id="uploadForm">
+      <?= csrf_field() ?>
       <div class="dropzone" id="dropzone">
         <b>Drag &amp; drop files here</b> or click to browse<br>
         <span id="fileCount" style="font-size:13px"></span>
@@ -142,6 +147,7 @@ $media = $media->fetchAll();
           <span style="position:absolute;top:8px;left:8px;background:rgba(19,92,50,.92);color:#fff;font-size:11px;font-weight:700;padding:4px 10px;border-radius:999px;letter-spacing:.4px">COVER</span>
         <?php endif; ?>
         <form method="post" onsubmit="return confirm('Delete this file?')">
+          <?= csrf_field() ?>
           <input type="hidden" name="media_id" value="<?= $m['id'] ?>">
           <button class="del" name="delete_media" value="1" title="Delete">✕</button>
         </form>
@@ -149,6 +155,7 @@ $media = $media->fetchAll();
       <div style="display:flex;gap:6px;margin-top:8px">
         <?php if ($m['file_type'] === 'image' && $m['id'] != $coverId): ?>
         <form method="post" style="flex:1">
+          <?= csrf_field() ?>
           <input type="hidden" name="media_id" value="<?= $m['id'] ?>">
           <button class="btn" name="set_cover" value="1" style="width:100%;padding:6px 8px;font-size:12px;background:#eef3f7">Set Cover</button>
         </form>
@@ -156,10 +163,12 @@ $media = $media->fetchAll();
         <div style="flex:1"></div>
         <?php endif; ?>
         <form method="post">
+          <?= csrf_field() ?>
           <input type="hidden" name="media_id" value="<?= $m['id'] ?>">
           <button class="btn" name="move_up" value="1" title="Move up" style="padding:6px 12px;font-size:13px;background:#eef3f7">&#8593;</button>
         </form>
         <form method="post">
+          <?= csrf_field() ?>
           <input type="hidden" name="media_id" value="<?= $m['id'] ?>">
           <button class="btn" name="move_dn" value="1" title="Move down" style="padding:6px 12px;font-size:13px;background:#eef3f7">&#8595;</button>
         </form>

@@ -16,6 +16,108 @@ function require_admin() {
 }
 
 /**
+ * CSRF protection
+ * ----------------
+ * csrf_field() prints a hidden input inside every admin/public POST form.
+ * csrf_verify() must be called before acting on any $_POST request.
+ */
+function csrf_token(): string {
+    if (empty($_SESSION['csrf_token'])) {
+        $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
+    }
+    return $_SESSION['csrf_token'];
+}
+
+function csrf_field(): string {
+    return '<input type="hidden" name="csrf_token" value="' . e(csrf_token()) . '">';
+}
+
+function csrf_verify(): void {
+    $ok = isset($_POST['csrf_token'], $_SESSION['csrf_token'])
+        && hash_equals($_SESSION['csrf_token'], $_POST['csrf_token']);
+    if (!$ok) {
+        http_response_code(403);
+        die('Security check failed (your session may have expired). Please go back, refresh the page, and try again.');
+    }
+}
+
+/**
+ * Basic Bangladeshi mobile number validation: 11 digits starting with 01.
+ * Strips spaces/dashes before checking so "017-1000-0000" still passes.
+ */
+function is_valid_mobile(string $mobile): bool {
+    $clean = preg_replace('/[\s\-]/', '', $mobile);
+    return (bool)preg_match('/^01[0-9]{9}$/', $clean);
+}
+
+/**
+ * Honeypot spam check for public forms: a hidden field real users never
+ * fill in. If it has a value, the submitter is almost certainly a bot.
+ */
+function honeypot_tripped(string $field = 'website'): bool {
+    return !empty($_POST[$field]);
+}
+
+/**
+ * SEO / Open Graph helpers
+ * ------------------------
+ * Build absolute URLs so social previews (Facebook, WhatsApp, LinkedIn)
+ * and search engines get a real link back to the site, not a relative path.
+ */
+function base_url(): string {
+    $scheme = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? 'https' : 'http';
+    $host   = $_SERVER['HTTP_HOST'] ?? 'localhost';
+    $dir    = rtrim(str_replace('\\', '/', dirname($_SERVER['SCRIPT_NAME'] ?? '')), '/');
+    return $scheme . '://' . $host . $dir;
+}
+
+function current_url(): string {
+    $scheme = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? 'https' : 'http';
+    $host   = $_SERVER['HTTP_HOST'] ?? 'localhost';
+    $uri    = $_SERVER['REQUEST_URI'] ?? '/';
+    return $scheme . '://' . $host . $uri;
+}
+
+/**
+ * Absolute URL for an asset/upload path. Accepts paths already relative to
+ * the site root, e.g. asset_url('uploads/events/foo.webp').
+ */
+function asset_url(string $relativePath): string {
+    return base_url() . '/' . ltrim($relativePath, '/');
+}
+
+/**
+ * Prints the standard block of <meta name="description">, canonical link,
+ * and Open Graph / Twitter Card tags. Call once inside <head> on every
+ * public page.
+ *
+ * $type    'website' or 'article' (use 'article' on event.php)
+ * $image   relative path (e.g. an event cover) — falls back to the CSE logo
+ */
+function seo_meta_tags(string $title, string $description, string $type = 'website', ?string $image = null): void {
+    $description = trim(preg_replace('/\s+/', ' ', strip_tags($description)));
+    if (mb_strlen($description) > 160) {
+        $description = mb_substr($description, 0, 157) . '...';
+    }
+    $imageUrl = $image ? asset_url($image) : asset_url('assets/cse-logo.png');
+    $url = current_url();
+    ?>
+<meta name="description" content="<?= e($description) ?>">
+<link rel="canonical" href="<?= e($url) ?>">
+<meta property="og:type" content="<?= e($type) ?>">
+<meta property="og:site_name" content="EBAUB CSE Department Gallery">
+<meta property="og:title" content="<?= e($title) ?>">
+<meta property="og:description" content="<?= e($description) ?>">
+<meta property="og:image" content="<?= e($imageUrl) ?>">
+<meta property="og:url" content="<?= e($url) ?>">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="<?= e($title) ?>">
+<meta name="twitter:description" content="<?= e($description) ?>">
+<meta name="twitter:image" content="<?= e($imageUrl) ?>">
+<?php
+}
+
+/**
  * THE PERFORMANCE LOGIC (as planned in the blueprint):
  * 1. Validate type + size
  * 2. If image  -> resize (max 1600px) + convert to WebP (~80% smaller)

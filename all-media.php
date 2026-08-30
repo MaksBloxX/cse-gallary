@@ -2,7 +2,7 @@
 require __DIR__ . '/includes/config.php';
 require __DIR__ . '/includes/functions.php';
 
-/* All Media: combined photo/video stream from Events and CSE Activities.
+/* All Media: combined photo/video stream from Events and Activities &amp; Achievements.
    Performance: pagination (24/page) + lazy loading + videos never preload. */
 $filter  = $_GET['filter'] ?? ''; // '', 'events', 'activities'
 $type    = $_GET['type'] ?? '';   // '', 'image', 'video'
@@ -74,7 +74,15 @@ $queryParamStr = $qp ? '&' . http_build_query($qp) : '';
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>All Media — EBAUB CSE Gallery</title>
+<title>Media Gallery — EBAUB CSE Gallery</title>
+<?php
+    seo_meta_tags(
+        'Media Gallery — EBAUB CSE Gallery',
+        'Browse every photo and video from Department of CSE events and activities at Exim Bank Agricultural University Bangladesh (EBAUB), all in one gallery.',
+        'website',
+        $media[0]['file_path'] ?? null
+    );
+?>
 <link rel="stylesheet" href="assets/style.css">
 <link rel="icon" type="image/png" href="assets/cse-logo.png">
 </head>
@@ -89,15 +97,15 @@ $queryParamStr = $qp ? '&' . http_build_query($qp) : '';
     <nav class="nav">
       <a href="index.php">Home</a>
       <a href="activities.php">Activities</a>
-      <a href="upcoming.php">Upcoming Events</a>
-      <a href="all-media.php" class="active">All Media</a>
+      <a href="upcoming.php">Events</a>
+      <a href="all-media.php" class="active">Media Gallery</a>
       <a href="https://ebaub.ac.bd/" target="_blank">Main Website</a>
     </nav>
   </div>
 </header>
 
 <main class="container">
-  <h2 class="section-title">All Media <small style="color:var(--muted);font-size:14px;font-weight:400">(<?= $totalMedia ?> items)</small></h2>
+  <h2 class="section-title">Media Gallery <small style="color:var(--muted);font-size:14px;font-weight:400">(<?= $totalMedia ?> items)</small></h2>
 
   <div class="chips" style="margin-bottom:22px">
     <a class="chip <?= ($filter === '' && $type === '') ? 'active' : '' ?>" href="all-media.php">All</a>

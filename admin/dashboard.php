@@ -202,11 +202,6 @@ $usedPct = min(100, round($stats['total'] / $limitBytes * 100, 1));
       <div style="font-size:24px;font-weight:800;color:var(--green-dark);margin:6px 0"><?= (int)$stats['vid_c'] ?></div>
       <div style="font-size:12.5px;color:var(--muted)"><?= fmt_bytes($stats['vid_b']) ?> on disk</div>
     </div>
-    <div class="panel" style="margin-bottom:0">
-      <div style="font-size:12px;color:var(--muted);font-weight:700;letter-spacing:.5px">LARGEST EVENT</div>
-      <div style="font-size:16px;font-weight:800;color:var(--green-dark);margin:8px 0;line-height:1.3"><?= $stats['top_event'] ? e($stats['top_event']) : '—' ?></div>
-      <div style="font-size:12.5px;color:var(--muted)"><?= $stats['top_event'] ? fmt_bytes($stats['top_bytes']) : 'no media yet' ?></div>
-    </div>
   </div>
 
   <div class="panel">

@@ -126,7 +126,7 @@ if ($eid && isset($_GET['export']) && $_GET['export'] === 'csv') {
       </select>
       <button class="btn btn-primary">Show</button>
       <?php if ($eid && $regs): ?>
-        <a class="btn" style="background:#eef3f7" href="registrations.php?event=<?= $eid ?>&export=csv">Download CSV (attendance sheet)</a>
+        <a class="btn" style="background:#eef3f7" href="registrations.php?event=<?= $eid ?>&export=csv">Download CSV</a>
       <?php endif; ?>
     </form>
   </div>

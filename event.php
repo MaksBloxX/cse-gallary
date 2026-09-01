@@ -127,7 +127,7 @@ $pStudents = array_values(array_filter($participants, fn($p) => $p['role'] === '
   <div class="header-inner">
     <a class="brand" href="index.php">
       <img class="brand-logo-img" src="assets/cse-logo.png" alt="EBAUB CSE Logo" width="48" height="48" style="width:48px;height:48px">
-      <div class="brand-text"><b>Department of CSE</b><span>Media Gallery</span></div>
+      <div class="brand-text"><b>Upcoming Event</b><span>EBAUB Discover</span></div>
     </a>
     <button type="button" class="admin-menu-toggle" onclick="toggleAdminMenu()" aria-label="Open menu">☰</button>
     <nav class="nav">

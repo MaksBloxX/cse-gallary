@@ -146,7 +146,7 @@ foreach ($pdo->query("SELECT * FROM activity_media ORDER BY id") as $m) $mediaBy
         <label>Activity Title</label>
         <input type="text" name="title" required placeholder="e.g. Arduino & Robotics Projects" value="<?= e($editing['title'] ?? '') ?>">
       </div>
-      <div class="form-row"><div class="field"><label>Location</label><input type="text" name="location" placeholder="e.g. CSE Building, Daffodil City Campus" value="<?= e($editing['location'] ?? '') ?>"></div><div class="field"><label>Facilities / Instruments</label><input type="text" name="facilities" placeholder="e.g. Computers, Projector, Internet" value="<?= e($editing['facilities'] ?? '') ?>"></div></div>
+      <div class="form-row"><div class="field"><label>Location</label><input type="text" name="location" placeholder="e.g. EBAUB CSE Campus" value="<?= e($editing['location'] ?? '') ?>"></div><div class="field"><label>Facilities / Instruments</label><input type="text" name="facilities" placeholder="e.g. Computers, Projector, Internet" value="<?= e($editing['facilities'] ?? '') ?>"></div></div>
       <div class="field"><label>Assigned Person / Teacher(s)</label><textarea name="assigned_persons" rows="2" placeholder="One or more names, separated by comma"><?= e($editing['assigned_persons'] ?? '') ?></textarea></div>
       <label style="display:block;margin:8px 0 14px"><input type="checkbox" name="published" value="1" <?= !isset($editing['published']) || $editing['published'] ? 'checked' : '' ?>> Published on public website</label>
       <div class="field">

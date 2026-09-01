@@ -99,6 +99,7 @@ if (!$heroImgs) $heroImgs = ['uploads/events/demo_seminar.jpg'];
       <img class="brand-logo-img" src="assets/cse-logo.png" alt="EBAUB CSE Logo" width="48" height="48" style="width:48px;height:48px">
       <div class="brand-text"><b>Department of CSE</b><span>Media Gallery · Exim Bank Agricultural University Bangladesh</span></div>
     </a>
+    <button type="button" class="admin-menu-toggle" onclick="toggleAdminMenu()" aria-label="Open menu">☰</button>
     <nav class="nav">
       <a href="index.php">Home</a>
       <a href="activities.php">Activities</a>
@@ -169,15 +170,23 @@ if (!$heroImgs) $heroImgs = ['uploads/events/demo_seminar.jpg'];
 
   <?php if ($activities): ?>
   <div class="activities-header">
-    <h2 class="section-title" id="activities" style="margin:0">Activities &amp; Achievements</h2>
-    <a class="btn-see-more" href="activities.php">See more &rarr;</a>
+    <div>
+      <h2 class="section-title" id="activities" style="margin:0">Activities &amp; Achievements</h2>
+      <p class="activities-subtitle">Explore the work, skills and achievements of the CSE Department</p>
+    </div>
+    <div class="activities-controls">
+      <button type="button" class="activity-arrow" onclick="scrollActivities(-1)" aria-label="Previous activities">&#10094;</button>
+      <button type="button" class="activity-arrow" onclick="scrollActivities(1)" aria-label="Next activities">&#10095;</button>
+
+    </div>
   </div>
-  <div class="activities-scroll">
+  <div class="activities-scroll" id="activitiesScroll">
     <?php foreach ($activities as $a):
       $imgs = $actMedia[$a['id']] ?? ($a['image'] ? [$a['image']] : []); ?>
-    <div class="activity-hcard activity-card" style="cursor:<?= $imgs ? 'pointer' : 'default' ?>"
-         data-imgs="<?= e(json_encode($imgs)) ?>" data-title="<?= e($a['title']) ?>">
+    <div class="activity-hcard activity-card" style="cursor:pointer"
+         data-activity-url="activities.php?id=<?= $a['id'] ?>" data-imgs="<?= e(json_encode($imgs)) ?>" data-title="<?= e($a['title']) ?>">
       <div class="activity-hcard-thumb">
+        <div class="activity-hcard-overlay"></div>
         <?php if ($imgs): ?>
           <img src="<?= e($imgs[0]) ?>" alt="<?= e($a['title']) ?>" loading="lazy">
           <?php if (count($imgs) > 1): ?>
@@ -188,6 +197,7 @@ if (!$heroImgs) $heroImgs = ['uploads/events/demo_seminar.jpg'];
       <div class="activity-hcard-body">
         <h3><?= e($a['title']) ?></h3>
         <p><?= e($a['description']) ?></p>
+        <div class="activity-hcard-footer"><a href="#" aria-label="Preview activity photos" title="Preview activity photos" onclick="event.preventDefault(); event.stopPropagation(); openActivityPreview(this.closest('.activity-card'));">View Gallery &rarr;</a><span><?= count($imgs) ?> photos</span></div>
       </div>
     </div>
     <?php endforeach; ?>
@@ -274,6 +284,11 @@ if (!$heroImgs) $heroImgs = ['uploads/events/demo_seminar.jpg'];
   auto();
 })();
 
+function scrollActivities(direction) {
+  const scroller = document.getElementById('activitiesScroll');
+  if (scroller) scroller.scrollBy({ left: direction * 330, behavior: 'smooth' });
+}
+
 /* Thread 2: typewriter reveal for the hero subtitle */
 (function () {
   const sub = document.getElementById('heroSubTyped');
@@ -296,15 +311,18 @@ const actLb = document.getElementById('actLb');
 const actContent = document.getElementById('actLbContent');
 const actCaption = document.getElementById('actLbCaption');
 
+function openActivityPreview(card) {
+  try { actImgs = JSON.parse(card.dataset.imgs || '[]'); } catch (e) { actImgs = []; }
+  if (!actImgs.length) return;
+  actTitle = card.dataset.title || '';
+  actIdx = 0;
+  actRender();
+  actLb.classList.add('open');
+  document.body.style.overflow = 'hidden';
+}
 document.querySelectorAll('.activity-card').forEach(card => {
   card.addEventListener('click', () => {
-    try { actImgs = JSON.parse(card.dataset.imgs || '[]'); } catch (e) { actImgs = []; }
-    if (!actImgs.length) return;
-    actTitle = card.dataset.title || '';
-    actIdx = 0;
-    actRender();
-    actLb.classList.add('open');
-    document.body.style.overflow = 'hidden';
+    window.location.href = card.dataset.activityUrl;
   });
 });
 function actRender() {
@@ -322,5 +340,6 @@ document.addEventListener('keydown', e => {
 });
 </script>
 
+<script>function toggleAdminMenu(){document.querySelector('.site-header .nav')?.classList.toggle('admin-nav-open');}</script>
 </body>
 </html>

@@ -40,6 +40,7 @@ $events = $stmt->fetchAll();
       <img class="brand-logo-img" src="assets/cse-logo.png" alt="EBAUB CSE Logo" width="48" height="48" style="width:48px;height:48px">
       <div class="brand-text"><b>Department of CSE</b><span>Upcoming Events · EBAUB Gallery</span></div>
     </a>
+    <button type="button" class="admin-menu-toggle" onclick="toggleAdminMenu()" aria-label="Open menu">☰</button>
     <nav class="nav">
       <a href="index.php">Home</a>
       <a href="activities.php">Activities</a>
@@ -89,5 +90,6 @@ $events = $stmt->fetchAll();
   <a href="admin/login.php" style="color:inherit" title="">©</a> <?= date('Y') ?> Department of CSE, EBAUB — Developed by MaksBlox IT
 </footer>
 
+<script>function toggleAdminMenu(){document.querySelector('.site-header .nav')?.classList.toggle('admin-nav-open');}</script>
 </body>
 </html>

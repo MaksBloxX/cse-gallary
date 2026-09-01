@@ -3,7 +3,8 @@ require __DIR__ . '/includes/config.php';
 require __DIR__ . '/includes/functions.php';
 
 /* Fetch all activities */
-$activities = $pdo->query("SELECT * FROM activities ORDER BY sort_order ASC, id DESC")->fetchAll();
+$activities = $pdo->query("SELECT * FROM activities WHERE COALESCE(published, 1) = 1 ORDER BY sort_order ASC, id DESC")->fetchAll();
+$selectedActivityId = (int)($_GET['id'] ?? 0);
 
 /* Fetch all activity media */
 $allActMedia = $pdo->query("SELECT activity_id, file_path FROM activity_media ORDER BY id ASC")->fetchAll();
@@ -146,6 +147,7 @@ foreach ($allActMedia as $row) {
       <img class="brand-logo-img" src="assets/cse-logo.png" alt="EBAUB CSE Logo" width="48" height="48" style="width:48px;height:48px">
       <div class="brand-text"><b>Department of CSE</b><span>Activities · EBAUB Gallery</span></div>
     </a>
+    <button type="button" class="admin-menu-toggle" onclick="toggleAdminMenu()" aria-label="Open menu">☰</button>
     <nav class="nav">
       <a href="index.php">Home</a>
       <a href="activities.php" class="active">Activities</a>
@@ -165,40 +167,40 @@ foreach ($allActMedia as $row) {
   <?php if (!$activities): ?>
     <div class="empty">No activities published yet.</div>
   <?php else: ?>
-    <?php foreach ($activities as $a):
-      $imgs = $actMedia[$a['id']] ?? ($a['image'] ? [$a['image']] : []); ?>
-      <div class="act-full-card">
-        <div class="act-full-top">
-          <?php if ($imgs): ?>
-          <div class="act-full-thumb" onclick="openActLb(<?= e(json_encode($imgs)) ?>, '<?= e(addslashes($a['title'])) ?>', 0)">
-            <img src="<?= e($imgs[0]) ?>" alt="<?= e($a['title']) ?>" loading="lazy">
-            <?php if (count($imgs) > 1): ?>
-              <span class="activity-hcard-badge"><?= count($imgs) ?> photos</span>
-            <?php endif; ?>
-          </div>
-          <?php endif; ?>
-          <div class="act-full-body">
-            <h3><?= e($a['title']) ?></h3>
-            <p><?= nl2br(e($a['description'])) ?></p>
-            <?php if ($imgs): ?>
-              <div style="font-size:13px;font-weight:700;color:var(--green);cursor:pointer" onclick="openActLb(<?= e(json_encode($imgs)) ?>, '<?= e(addslashes($a['title'])) ?>', 0)">
-                View Gallery (<?= count($imgs) ?> photos) &rarr;
-              </div>
-            <?php endif; ?>
-          </div>
+    <div class="activities-directory">
+      <aside class="activities-sidebar">
+        <div class="sidebar-title">ACTIVITIES &amp; ACHIEVEMENTS</div>
+        <div class="activity-list">
+        <?php foreach ($activities as $i => $a): ?>
+          <button type="button" class="activity-list-item <?= (($selectedActivityId && $selectedActivityId === (int)$a['id']) || (!$selectedActivityId && $i === 0)) ? 'selected' : '' ?>" data-activity-id="<?= $a['id'] ?>" onclick="selectActivity(<?= $a['id'] ?>)"><?= e($a['title']) ?></button>
+        <?php endforeach; ?>
         </div>
-
-        <?php if (count($imgs) > 1): ?>
-        <div class="act-thumbs-strip">
-          <?php foreach ($imgs as $k => $imgSrc): ?>
-            <div class="act-mini-thumb" onclick="openActLb(<?= e(json_encode($imgs)) ?>, '<?= e(addslashes($a['title'])) ?>', <?= $k ?>)">
-              <img src="<?= e($imgSrc) ?>" alt="Photo <?= $k + 1 ?>" loading="lazy">
-            </div>
-          <?php endforeach; ?>
-        </div>
-        <?php endif; ?>
+      </aside>
+      <div class="activity-select-mobile">
+        <label>Current Selection</label>
+        <select onchange="selectActivity(this.value)">
+          <?php foreach ($activities as $i => $a): ?><option value="<?= $a['id'] ?>"><?= e($a['title']) ?></option><?php endforeach; ?>
+        </select>
       </div>
-    <?php endforeach; ?>
+      <section class="activities-details">
+      <?php foreach ($activities as $i => $a): $items = $actMedia[$a['id']] ?? ($a['image'] ? [$a['image']] : []); ?>
+        <article class="activity-detail-panel <?= (($selectedActivityId && $selectedActivityId === (int)$a['id']) || (!$selectedActivityId && $i === 0)) ? 'active' : '' ?>" id="activity-detail-<?= $a['id'] ?>">
+          <div class="detail-kicker">ACTIVITY / FACILITY</div>
+          <h2><?= e($a['title']) ?></h2>
+          <?php if (!empty($a['description'])): ?><p class="detail-description"><?= nl2br(e($a['description'])) ?></p><?php endif; ?>
+          <div class="detail-info-grid">
+            <?php if (!empty($a['location'])): ?><div><b><img class="detail-icon" src="assets/icons/location.svg" alt="">Location</b><span><?= e($a['location']) ?></span></div><?php endif; ?>
+            <?php if (!empty($a['facilities'])): ?><div><b><img class="detail-icon" src="assets/icons/tools.svg" alt="">Instruments</b><span><?= e($a['facilities']) ?></span></div><?php endif; ?>
+          </div>
+          <?php if (!empty($a['assigned_persons'])): ?><div class="assigned-box"><b><img class="detail-icon" src="assets/icons/person.svg" alt="">Assigned Person</b><span><?= nl2br(e($a['assigned_persons'])) ?></span></div><?php endif; ?>
+          <div class="gallery-heading">Gallery <span><?= count($items) ?> photos</span></div>
+          <div class="activity-gallery-grid">
+          <?php foreach ($items as $m): ?><img src="<?= e($m) ?>" alt="<?= e($a['title']) ?>" loading="lazy" onclick="openActLb(<?= e(json_encode(array_values($items))) ?>, '<?= e(addslashes($a['title'])) ?>', 0)"><?php endforeach; ?>
+          </div>
+        </article>
+      <?php endforeach; ?>
+      </section>
+    </div>
   <?php endif; ?>
 </main>
 
@@ -238,7 +240,9 @@ function openActLb(imgs, title, startIndex) {
   document.body.style.overflow = 'hidden';
 }
 function renderLb() {
-  content.innerHTML = `<img src="${curImgs[curIdx]}" alt="">`;
+  content.innerHTML = `<img src="${curImgs[curIdx]}" alt="" style="cursor:zoom-in;transition:transform .25s ease">`;
+  const img = content.querySelector('img');
+  img.addEventListener('click', function(e) { e.stopPropagation(); const z = img.dataset.zoom === '1'; img.dataset.zoom = z ? '0' : '1'; img.style.transform = z ? 'scale(1)' : 'scale(2)'; img.style.cursor = z ? 'zoom-in' : 'zoom-out'; });
   caption.textContent = `${curTitle}  —  ${curIdx + 1} / ${curImgs.length}`;
 }
 function actNav(d) {
@@ -258,7 +262,15 @@ document.addEventListener('keydown', e => {
   if (e.key === 'ArrowLeft') actNav(-1);
   if (e.key === 'ArrowRight') actNav(1);
 });
+function selectActivity(id) {
+  document.querySelectorAll('.activity-detail-panel').forEach(el => el.classList.toggle('active', el.id === 'activity-detail-' + id));
+  document.querySelectorAll('.activity-list-item').forEach(el => el.classList.toggle('selected', el.dataset.activityId == id));
+  const select = document.querySelector('.activity-select-mobile select');
+  if (select && select.value != id) select.value = id;
+}
+
 </script>
 
+<script>function toggleAdminMenu(){document.querySelector('.site-header .nav')?.classList.toggle('admin-nav-open');}</script>
 </body>
 </html>

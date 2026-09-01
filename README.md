@@ -33,12 +33,15 @@ Teachers enter in one of two ways:
 ## Key features
 - **Auto WebP compression** on upload (GD): a 458 KB JPEG became 49 KB in testing (~89% smaller). Graceful fallback if GD is missing.
 - **Homepage slider**: 3 slides managed from the Admin Dashboard, auto-rotate every 4.5s.
-- **CSE Activities**: create activities from Admin → Activities, add multiple photos, and show them in horizontal cards on the homepage and in the dedicated Activities page.
+- **Activities & Achievements**: create activities, laboratories, projects, contests or research centers from Admin → Activities, add location, facilities/instruments, assigned teachers/persons and multiple photos. The public page provides a desktop activity list with selected details and a mobile selection dropdown.
+- **Responsive navigation**: desktop navigation stays horizontal; mobile public and admin pages use a clear hamburger menu with a visible glass-style background.
 - **Event registration**: teachers can create multiple Google Form-like student dropdown fields, each with its own title and options (for example, Select Sport, Select Team, and Participation Role). Teachers do not need to fill student-only fields.
 - **Participation arrangement**: teachers appear first in the public participation list; students are grouped by the first custom field, with other selected options shown as badges.
 - **Combined All Media**: the All Media page includes both Event media and Activity media, with All, Events, Activities, Photos, and Videos filters.
 - **Event lifecycle**: registration starts when an event is created, closes after the registration deadline, and the event moves from Upcoming Events to Event Gallery after the event date.
 - **Registration correction**: students can use a one-time edit link before the deadline; teachers/admins can edit registrations from the admin panel when further correction is needed.
+- **Event page layout**: on desktop, Registration Form and Full Details appear as separate side-by-side boxes; on mobile, Full Details can be opened or closed with a single Full Details arrow control, followed by the registration form and participation list.
+- **Footer layout**: public pages keep the footer full-width and flush with the bottom of short pages.
 - **Media arrangement**: Set Cover button + move up/down arrows; public pages follow the order. The needed DB column is added by **auto-migration** — no manual SQL.
 - **Storage monitor** (admin only): total usage, photos vs videos, largest event, progress bar against quota. Cached 2 minutes.
 - **Admin security**: CSRF protection on forms, hardened session cookies, security headers, hidden database errors in production, login slow-down, and a registration honeypot against basic spam bots.

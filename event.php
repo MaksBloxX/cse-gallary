@@ -121,7 +121,7 @@ $pStudents = array_values(array_filter($participants, fn($p) => $p['role'] === '
 <link rel="stylesheet" href="assets/style.css">
 <link rel="icon" type="image/png" href="assets/cse-logo.png">
 </head>
-<body>
+<body class="event-page">
 
 <header class="site-header">
   <div class="header-inner">
@@ -129,6 +129,7 @@ $pStudents = array_values(array_filter($participants, fn($p) => $p['role'] === '
       <img class="brand-logo-img" src="assets/cse-logo.png" alt="EBAUB CSE Logo" width="48" height="48" style="width:48px;height:48px">
       <div class="brand-text"><b>Department of CSE</b><span>Media Gallery</span></div>
     </a>
+    <button type="button" class="admin-menu-toggle" onclick="toggleAdminMenu()" aria-label="Open menu">☰</button>
     <nav class="nav">
       <a href="index.php">Home</a>
       <a href="activities.php">Activities</a>
@@ -146,18 +147,15 @@ $pStudents = array_values(array_filter($participants, fn($p) => $p['role'] === '
   <?php elseif ($isUpcoming): ?>
     <span style="display:inline-block;background:#fdecec;color:#c0392b;font-size:12px;font-weight:800;letter-spacing:.5px;padding:6px 14px;border-radius:999px;margin-bottom:12px">UPCOMING EVENT — REGISTRATION CLOSED</span>
   <?php endif; ?>
-  <div style="max-width:820px;margin-bottom:26px">
-    <?php if (mb_strlen($event['description']) > 280): ?>
-      <p id="eventShortDescription" style="color:#3a4553;line-height:1.6;margin:0"><?= e(mb_strimwidth($event['description'], 0, 280, '…')) ?></p>
-      <p id="eventFullDescription" style="display:none;color:#3a4553;line-height:1.6;margin:0"><?= nl2br(e($event['description'])) ?></p>
-      <button type="button" id="descriptionToggle" onclick="toggleEventDescription()" style="border:0;background:none;padding:6px 0;color:var(--green-dark);font-weight:700;font-size:14.5px;cursor:pointer">See more</button>
-    <?php else: ?>
+  <div class="event-layout <?= $regOpen ? 'has-registration' : 'no-registration' ?>">
+  <div class="event-details-box">
+    <button type="button" class="event-details-toggle" onclick="toggleEventDescription()">Full Details <span id="detailsChevron">▼</span></button>
+    <div class="event-details-content">
       <p style="color:#3a4553;line-height:1.6;margin:0"><?= nl2br(e($event['description'])) ?></p>
-    <?php endif; ?>
+    </div>
   </div>
-
   <?php if ($regOpen): ?>
-  <div class="panel" style="max-width:640px" id="registerBox">
+  <div class="panel event-register-box" style="max-width:640px" id="registerBox">
     <h3><?= $editReg ? 'Edit Your Registration (one time)' : 'Register for this Event' ?><?= $deadline ? ' <small style="font-weight:400;font-size:13px;color:var(--muted)">(deadline: ' . date('d M Y', strtotime($deadline)) . ')</small>' : '' ?></h3>
     <?php if ($regMsg): ?><div class="alert alert-ok"><?= e($regMsg) ?><?php if ($newRegId): ?><br><small>Need to correct something? Save this one-time edit link: <a href="event.php?id=<?= $id ?>&edit=<?= $newRegId ?>&mobile=<?= urlencode($mobile) ?>">Edit registration</a></small><?php endif; ?></div><?php endif; ?>
     <?php if ($regErr): ?><div class="alert alert-error"><?= e($regErr) ?></div><?php endif; ?>
@@ -219,6 +217,7 @@ $pStudents = array_values(array_filter($participants, fn($p) => $p['role'] === '
     </p>
   </div>
   <?php endif; ?>
+  </div>
 
   <?php if ($participants): ?>
   <details class="panel" style="max-width:640px;cursor:pointer">
@@ -409,13 +408,13 @@ document.addEventListener('keydown', e => {
 });
 
 function toggleEventDescription() {
-  const shortText = document.getElementById('eventShortDescription');
-  const fullText = document.getElementById('eventFullDescription');
-  const toggle = document.getElementById('descriptionToggle');
-  const expanded = fullText.style.display === 'none';
-  shortText.style.display = expanded ? 'none' : '';
-  fullText.style.display = expanded ? '' : 'none';
-  toggle.textContent = expanded ? 'See less' : 'See more';
+  const box = document.querySelector('.event-details-box');
+  const content = document.querySelector('.event-details-content');
+  const chevron = document.getElementById('detailsChevron');
+  if (!box || !content) return;
+  const open = box.classList.toggle('open');
+  content.style.display = open ? '' : 'none';
+  if (chevron) chevron.textContent = open ? '▲' : '▼';
 }
 
 /* Registration: student / teacher tab switch */
@@ -433,5 +432,6 @@ function setRole(r) {
 }
 </script>
 
+<script>function toggleAdminMenu(){document.querySelector('.site-header .nav')?.classList.toggle('admin-nav-open');}</script>
 </body>
 </html>

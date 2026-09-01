@@ -94,6 +94,7 @@ $media = $media->fetchAll();
       <img class="brand-logo-img" src="../assets/cse-logo.png" alt="EBAUB CSE Logo" width="48" height="48" style="width:48px;height:48px">
       <div class="brand-text"><b>Media Manager</b><span><?= e($event['title']) ?></span></div>
     </a>
+    <button type="button" class="admin-menu-toggle" onclick="toggleAdminMenu()" aria-label="Open menu">☰</button>
     <nav class="nav">
       <a href="dashboard.php">← Dashboard</a>
       <a href="change-password.php">Account</a>
@@ -198,5 +199,6 @@ function updateCount() {
 }
 </script>
 
+<script>function toggleAdminMenu(){document.querySelector('.site-header .nav')?.classList.toggle('admin-nav-open');}</script>
 </body>
 </html>

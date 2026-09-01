@@ -39,8 +39,8 @@ function save_activity_images(PDO $pdo, int $aid, array &$msgs): void {
 /* CREATE (with optional multiple images) */
 if (isset($_POST['create'])) {
     csrf_verify();
-    $pdo->prepare("INSERT INTO activities (title, description, created_at) VALUES (?,?,?)")
-        ->execute([trim($_POST['title']), trim($_POST['description']), date('Y-m-d H:i:s')]);
+    $pdo->prepare("INSERT INTO activities (title, description, location, facilities, assigned_persons, published, created_at) VALUES (?,?,?,?,?,?,?)")
+        ->execute([trim($_POST['title']), trim($_POST['description']), trim($_POST['location']), trim($_POST['facilities']), trim($_POST['assigned_persons']), isset($_POST['published']) ? 1 : 0, date('Y-m-d H:i:s')]);
     $aid = (int)$pdo->lastInsertId();
     $notes = [];
     save_activity_images($pdo, $aid, $notes);
@@ -50,8 +50,8 @@ if (isset($_POST['create'])) {
 /* UPDATE title/description */
 if (isset($_POST['update'])) {
     csrf_verify();
-    $pdo->prepare("UPDATE activities SET title=?, description=? WHERE id=?")
-        ->execute([trim($_POST['title']), trim($_POST['description']), (int)$_POST['id']]);
+    $pdo->prepare("UPDATE activities SET title=?, description=?, location=?, facilities=?, assigned_persons=?, published=? WHERE id=?")
+        ->execute([trim($_POST['title']), trim($_POST['description']), trim($_POST['location']), trim($_POST['facilities']), trim($_POST['assigned_persons']), isset($_POST['published']) ? 1 : 0, (int)$_POST['id']]);
     $msg = 'Activity updated!';
 }
 
@@ -121,6 +121,7 @@ foreach ($pdo->query("SELECT * FROM activity_media ORDER BY id") as $m) $mediaBy
       <img class="brand-logo-img" src="../assets/cse-logo.png" alt="EBAUB CSE Logo" width="48" height="48" style="width:48px;height:48px">
       <div class="brand-text"><b>CSE Activities</b><span>Logged in as <?= e($_SESSION['admin_name']) ?></span></div>
     </a>
+    <button type="button" class="admin-menu-toggle" onclick="toggleAdminMenu()" aria-label="Open menu">☰</button>
     <nav class="nav">
       <a href="dashboard.php">Dashboard</a>
       <a href="activities.php">Activities</a>
@@ -145,6 +146,9 @@ foreach ($pdo->query("SELECT * FROM activity_media ORDER BY id") as $m) $mediaBy
         <label>Activity Title</label>
         <input type="text" name="title" required placeholder="e.g. Arduino & Robotics Projects" value="<?= e($editing['title'] ?? '') ?>">
       </div>
+      <div class="form-row"><div class="field"><label>Location</label><input type="text" name="location" placeholder="e.g. CSE Building, Daffodil City Campus" value="<?= e($editing['location'] ?? '') ?>"></div><div class="field"><label>Facilities / Instruments</label><input type="text" name="facilities" placeholder="e.g. Computers, Projector, Internet" value="<?= e($editing['facilities'] ?? '') ?>"></div></div>
+      <div class="field"><label>Assigned Person / Teacher(s)</label><textarea name="assigned_persons" rows="2" placeholder="One or more names, separated by comma"><?= e($editing['assigned_persons'] ?? '') ?></textarea></div>
+      <label style="display:block;margin:8px 0 14px"><input type="checkbox" name="published" value="1" <?= !isset($editing['published']) || $editing['published'] ? 'checked' : '' ?>> Published on public website</label>
       <div class="field">
         <label>Short Description</label>
         <textarea name="description" rows="2" placeholder="One or two lines about this activity..."><?= e($editing['description'] ?? '') ?></textarea>
@@ -215,5 +219,6 @@ foreach ($pdo->query("SELECT * FROM activity_media ORDER BY id") as $m) $mediaBy
   <?php endif; ?>
 </main>
 
+<script>function toggleAdminMenu(){document.querySelector('.site-header .nav')?.classList.toggle('admin-nav-open');}</script>
 </body>
 </html>

@@ -104,6 +104,11 @@ try {
     } catch (Throwable $e2) {}
 }
 
+/* Auto-migration: expanded activity details */
+try { $pdo->query("SELECT location, assigned_persons, facilities, published FROM activities LIMIT 1"); } catch (Throwable $e) {
+    foreach (["ALTER TABLE activities ADD COLUMN location TEXT NULL", "ALTER TABLE activities ADD COLUMN assigned_persons TEXT NULL", "ALTER TABLE activities ADD COLUMN facilities TEXT NULL", "ALTER TABLE activities ADD COLUMN published INTEGER NOT NULL DEFAULT 1"] as $sql) { try { $pdo->exec($sql); } catch (Throwable $ignore) {} }
+}
+
 /* Auto-migration 3b: multiple media per activity */
 try {
     $pdo->query("SELECT id FROM activity_media LIMIT 1");

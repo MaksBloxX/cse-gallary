@@ -54,6 +54,7 @@ $stillDemo = password_verify('ebaub123', (string)$stmt->fetchColumn());
       <img class="brand-logo-img" src="../assets/cse-logo.png" alt="EBAUB CSE Logo" width="48" height="48" style="width:48px;height:48px">
       <div class="brand-text"><b>Account Settings</b><span>Logged in as <?= e($_SESSION['admin_name']) ?></span></div>
     </a>
+    <button type="button" class="admin-menu-toggle" onclick="toggleAdminMenu()" aria-label="Open menu">☰</button>
     <nav class="nav">
       <a href="dashboard.php">Dashboard</a>
       <a href="activities.php">Activities</a>
@@ -98,5 +99,6 @@ $stillDemo = password_verify('ebaub123', (string)$stmt->fetchColumn());
   </div>
 </main>
 
+<script>function toggleAdminMenu(){document.querySelector('.site-header .nav')?.classList.toggle('admin-nav-open');}</script>
 </body>
 </html>
